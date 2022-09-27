@@ -103,7 +103,7 @@ void *serverSide(void *client_thread)
 {
     int sock, sendsock;
     /* Estrutura: familia + endereco IP + porta */
-    struct sockaddr_in server, client, resend;
+    struct sockaddr_in server, client;
     int sock_size = sizeof(server);
 
     /* Cria o socket para enviar e receber datagramas
@@ -123,11 +123,6 @@ void *serverSide(void *client_thread)
     server.sin_addr.s_addr = htonl(INADDR_ANY); /* endereco IP local */
     server.sin_port = htons(6000);              /* porta local  */
 
-    bzero((char *)&resend, sock_size);
-    resend.sin_family = AF_INET;
-    /* endereco IP de destino */
-    resend.sin_addr.s_addr = inet_addr(ip); /* host local */
-    resend.sin_port = htons(6000);          /* porta do servidor */
     fprintf(stderr, "Esperando entrada\n");
    
 
@@ -170,7 +165,8 @@ void *serverSide(void *client_thread)
                 {
                     fprintf(stderr, "processo já iniciado\n");
                     char resposta[] = "processo já Iniciado";
-                    sendto(sock, resposta, sizeof(resposta), 0, (struct sockaddr *)&resend, sock_size);
+                    client.sin_port = htons(6000);
+                    sendto(sock, resposta, sizeof(resposta), 0, (struct sockaddr *)&client, sock_size);
                     continue;
                 }
 
@@ -223,8 +219,9 @@ void *serverSide(void *client_thread)
 
                 char net_buf[BUFFER_SIZE];
                 int size;
+                client.sin_port = htons(6000);
                 char mensagem[BUFFER_SIZE] = "enviando arquivo";
-                sendto(sock, mensagem, sizeof(mensagem), 0, (struct sockaddr *)&resend, sock_size);
+                sendto(sock, mensagem, sizeof(mensagem), 0, (struct sockaddr *)&client, sock_size);
                 while ((size = fread(net_buf, 1, BUFFER_SIZE, file)) > 0)
                 {
                     
@@ -234,12 +231,12 @@ void *serverSide(void *client_thread)
                         size++;
                     }
 
-                    sendto(sock, net_buf, size, 0, (struct sockaddr *)&resend, sock_size);
+                    sendto(sock, net_buf, size, 0, (struct sockaddr *)&client, sock_size);
                     bzero(net_buf, BUFFER_SIZE);
                 }
 
                 strcpy(mensagem, "END");
-                sendto(sock, mensagem, sizeof(mensagem), 0, (struct sockaddr *)&resend, sock_size);
+                sendto(sock, mensagem, sizeof(mensagem), 0, (struct sockaddr *)&client, sock_size);
                 fclose(file);
                 fprintf(stderr, "Arquivo enviado\n");
 
