@@ -9,9 +9,11 @@
 #include <ctype.h>
 #include <pthread.h>
 
+//// 
+
 #define ECHOMAX 255
 #define BUFFER_SIZE 100
-void *serverSide(void *client_thread);
+void *serverSide(void *);
 void *clientSide(void *arg);
 int verifyBufferFinalSize(char *buffer, int size);
 bool receiveFile = false;
@@ -33,7 +35,7 @@ int main(int argc, char *argv[])
     pthread_t t_cliente_id;
     ip = argv[1];
 
-    pthread_create(&t_server_id, NULL, serverSide, (void *)t_cliente_id);
+    pthread_create(&t_server_id, NULL, serverSide, NULL);
     pthread_create(&t_cliente_id, NULL, clientSide, (void *)argv[1]);
     pthread_join(t_server_id, NULL);
     pthread_join(t_cliente_id, NULL);
@@ -43,7 +45,7 @@ int main(int argc, char *argv[])
 }
 
 void *clientSide(void *arg)
-{
+{ 
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
     int sock;
     char *argv = (char *)arg;
@@ -75,6 +77,23 @@ void *clientSide(void *arg)
         /* Envia mensagem para o endereco remoto
          parametros(descritor socket, dados, tamanho dos dados, flag, estrutura do socket remoto, tamanho da estrutura) */
         strcpy(aux_exit, linha);
+        // muda o ip a ser enviado os dados
+        if (!strcmp(aux_exit, "change"))
+        {
+            fprintf(stderr, "digite o novo IP\n");
+            fgets(linha, ECHOMAX, stdin);
+            linha[strcspn(linha, "\n")] = 0;
+            int result = inet_pton(AF_INET, linha, &(client.sin_addr));
+            if(result != 1)
+            {
+                fprintf(stderr, "Erro, Digite um IP valido\n");
+                continue;
+            }
+
+            client.sin_addr.s_addr = inet_addr(linha);
+            continue;
+        }
+
         if (!strcmp(aux_exit, "send"))
         {
             fprintf(stderr, "preparando para receber arquivo\n");
@@ -88,7 +107,7 @@ void *clientSide(void *arg)
     return 0;
 }
 
-void *serverSide()
+void *serverSide(void * unused)
 {
     int sock, sendsock;
     /* Estrutura: familia + endereco IP + porta */
