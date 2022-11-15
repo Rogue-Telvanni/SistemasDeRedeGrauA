@@ -53,7 +53,6 @@ int main(int argc, char *argv[])
 	pthread_create(&t_cliente_id, NULL, clientSide, (void *)argv[1]);
 	pthread_join(t_server_id, NULL);
 	pthread_join(t_cliente_id, NULL);
-	close(rem_sockfd);
 
 	printf("fechando programa");
 
@@ -108,7 +107,7 @@ void *clientSide(void *arg)
 		perror("Conectando stream socket cliente");
 		exit(1);
 	}
-
+ 
 	do
 	{
 		fgets(linha, ECHOMAX, stdin);
@@ -128,11 +127,18 @@ void *clientSide(void *arg)
 
 			if(strcmp(linha, ip))
             {
+
+				close(rem_sockfd);
 			    ip = linha;
-				MudaConnect(ip);
-            }
-            else
-	            fprintf(stderr, "ip já selecionado\n");
+				rem_addr.sin_addr.s_addr = inet_addr(ip); /* endereco IP local */
+				if (connect(rem_sockfd, (struct sockaddr *)&rem_addr, sizeof(rem_addr)) < 0)
+				{
+					perror("Conectando stream socket cliente");
+					exit(1);
+				}
+			}
+			else
+				fprintf(stderr, "ip já selecionado\n");
 
 			continue;
 		}
@@ -183,6 +189,7 @@ void *clientSide(void *arg)
 
 	} while (strcmp(linha, "exit"));
 	/* fechamento do socket remota */
+	close(rem_sockfd);
 
 	return 0;
 }
